@@ -8,7 +8,7 @@ A softball lineup manager React component.
 
 **Mobile** — single panel with List / Field tab toggle:
 
-![Mobile view](docs/mobile.png) Drag-and-drop batting order and field position assignment in one view, with support for 3 or 4 outfielders and an optional Extra Hitter.
+![Mobile list view](docs/mobile.png) ![Mobile field view](docs/mobile-field.png) Drag-and-drop batting order and field position assignment in one view, with support for 3 or 4 outfielders and an optional Extra Hitter.
 
 ## Features
 

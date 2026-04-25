@@ -1,5 +1,5 @@
 {
-  "name": "ebbets",
+  "name": "@micahcraig/ebbets",
   "version": "0.1.0",
   "description": "Softball lineup manager — drag-and-drop lineup and field position assignment",
   "author": "Micah Craig",

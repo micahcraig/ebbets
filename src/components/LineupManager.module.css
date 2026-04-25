@@ -1,0 +1,508 @@
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.app {
+  container-type: inline-size;
+  max-width: 1160px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Narrow: sliding two-panel track */
+.body { flex: 1; overflow: hidden; }
+
+.panelTrack {
+  display: flex;
+  width: 200%;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.panelTrackField { transform: translateX(-50%); }
+
+.panel { width: 50%; flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; }
+
+/* ── Wide layout (both panels side-by-side) ──────────────────────────────── */
+@container (min-width: 820px) {
+  .body { overflow: visible; display: flex; align-items: flex-start; }
+  /* Dissolve the track — panels participate directly in body's flex layout */
+  .panelTrack { display: contents; }
+  .panel { width: auto; overflow-y: visible; }
+  /* Lineup panel: fixed width */
+  .panel:first-child {
+    width: 380px;
+    flex-shrink: 0;
+    border-right: 1px solid #e2e8f0;
+    min-height: calc(100dvh - 80px);
+  }
+  /* Field panel: fills remaining space */
+  .panel:last-child { flex: 1; }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.header {
+  background: #1e3a5f;
+  color: white;
+  padding: 16px 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 12px;
+  letter-spacing: .02em;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+}
+
+/* ── View tabs ───────────────────────────────────────────────────────────── */
+.viewToggle {
+  display: flex;
+  background: rgba(255,255,255,.15);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+@container (min-width: 820px) {
+  .viewToggle { display: none; }
+}
+
+.tab, .tabActive {
+  border: none;
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab      { background: transparent;   color: rgba(255,255,255,.7); }
+.tabActive { background: white;        color: #1e3a5f; }
+
+/* ── Toggle switches ─────────────────────────────────────────────────────── */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .8rem;
+  font-weight: 500;
+  color: rgba(255,255,255,.85);
+  cursor: pointer;
+  user-select: none;
+}
+.toggle input { position: absolute; opacity: 0; width: 0; pointer-events: none; }
+.toggleAuto { opacity: .75; cursor: default; }
+.autoBadge {
+  font-size: .65rem;
+  font-weight: 700;
+  background: rgba(255,255,255,.25);
+  color: white;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.toggleTrack {
+  width: 34px;
+  height: 20px;
+  background: rgba(255,255,255,.25);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.toggle input:checked + .toggleTrack { background: #3b82f6; }
+
+.toggleThumb {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.toggle input:checked + .toggleTrack .toggleThumb { transform: translateX(14px); }
+
+/* ── Lineup view ─────────────────────────────────────────────────────────── */
+.lineupWrap { padding: 12px; flex: 1; }
+
+.positionStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 4px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 8px;
+}
+
+.stripChipAnchor {
+  position: relative;
+}
+
+.lineup {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* li wrapper — receives sortable transform */
+.rowWrap {
+  border-radius: 10px;
+  outline: none;
+}
+.rowDragging { opacity: 0; }       /* hide original while overlay is shown */
+.rowGhost   { opacity: .4; }
+
+/* inner row layout */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  border: 1.5px solid transparent;
+}
+.ehRow   { border-color: #f59e0b; background: #fffbeb; }
+.rowOverlay {
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  cursor: grabbing;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: .72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: .01em;
+}
+
+.dragHandle {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  cursor: grab;
+  padding: 2px 4px;
+  touch-action: none;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.dragHandle:active { cursor: grabbing; }
+
+.order {
+  width: 20px;
+  text-align: center;
+  font-size: .82rem;
+  font-weight: 700;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: .9rem;
+  background: #f8fafc;
+  color: #1e293b;
+  outline: none;
+  transition: border-color .15s;
+}
+.nameInput:focus { border-color: #3b82f6; background: white; }
+
+.posSelect {
+  width: 60px;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px 4px;
+  font-size: .85rem;
+  background: #f8fafc;
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+}
+.posSelect:focus { border-color: #3b82f6; }
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: .9rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color .1s;
+  flex-shrink: 0;
+}
+.removeBtn:hover { color: #ef4444; }
+
+.removeConfirm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.removeConfirmLabel {
+  font-size: .75rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+.removeConfirmYes, .removeConfirmNo {
+  border: none;
+  border-radius: 4px;
+  font-size: .75rem;
+  padding: 3px 7px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.removeConfirmYes {
+  background: #ef4444;
+  color: white;
+}
+.removeConfirmYes:hover { background: #dc2626; }
+.removeConfirmNo {
+  background: #e2e8f0;
+  color: #475569;
+}
+.removeConfirmNo:hover { background: #cbd5e1; }
+
+.addBtn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
+  background: white;
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  font-size: .9rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.addBtn:hover { border-color: #3b82f6; color: #3b82f6; }
+
+/* ── Field view ──────────────────────────────────────────────────────────── */
+.fieldWrap {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/*
+  Aspect-ratio box matches SVG viewBox (500 × 480).
+  Children are positioned absolutely inside it.
+*/
+.fieldContainer {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 500 / 480;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2);
+}
+
+.fieldSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Transparent HTML layer for draggable chips */
+.fieldOverlay {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── Player drag preview (cross-panel overlay) ───────────────────────────── */
+.playerPreview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border-radius: 8px;
+  padding: 6px 14px 6px 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+  border: 1.5px solid #e2e8f0;
+  cursor: grabbing;
+  pointer-events: none;
+}
+.playerPreviewName {
+  font-size: .9rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+/* ── Position chips ──────────────────────────────────────────────────────── */
+
+/* Absolute anchor (handles positioning); droppable ref lives here */
+.chipAnchor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  /* widen the drop target slightly beyond the visual chip */
+  padding: 4px;
+}
+
+/* Draggable wrapper (receives dnd-kit transform) */
+.chipDragWrap {
+  touch-action: none;
+  cursor: grab;
+  transition: opacity .15s;
+}
+.chipDragWrap:active { cursor: grabbing; }
+.chipDragging  { opacity: 0; }   /* hide original while DragOverlay renders */
+.chipSource    { opacity: .35; }
+
+/* Visual chip */
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2.5px solid;
+  transition: border-color .12s, background .12s, box-shadow .12s;
+  user-select: none;
+}
+
+.chipFilled {
+  background: #1e40af;
+  border-color: #60a5fa;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.chipEmpty {
+  background: rgba(55,65,81,.75);
+  border-color: #6b7280;
+  border-style: dashed;
+}
+
+/* Dragged-over state */
+.chipOver.chipFilled { border-color: #fde047; box-shadow: 0 0 0 3px rgba(253,224,71,.4); }
+.chipOver.chipEmpty  { background: rgba(30,64,175,.5); border-color: #93c5fd; border-style: solid; }
+
+/* Subtle pulse on empty chips while a player is being dragged from the lineup */
+.chipReceiver.chipEmpty {
+  border-color: #60a5fa;
+  border-style: solid;
+  animation: chipPulse 1.4s ease-in-out infinite;
+}
+@keyframes chipPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(96,165,250,0); }
+  50%       { box-shadow: 0 0 0 5px rgba(96,165,250,.35); }
+}
+
+/* Floating overlay chip */
+.chipOverlay {
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  cursor: grabbing;
+}
+
+.chipPos {
+  font-size: .62rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.8);
+  line-height: 1;
+  font-family: sans-serif;
+  letter-spacing: .03em;
+}
+
+.chipInitials {
+  font-size: .95rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  font-family: sans-serif;
+  letter-spacing: .01em;
+}
+
+/* ── EH section (one box per EH slot) ───────────────────────────────────── */
+.ehSection {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ehBox {
+  width: 100%;
+  max-width: 480px;
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: grab;
+  transition: border-color .12s, box-shadow .12s, opacity .12s;
+  touch-action: none;
+  user-select: none;
+}
+.ehBoxDragging { opacity: 0; }
+.ehBoxSource   { opacity: .4; }
+.ehBoxOver     { border-color: #fde047; box-shadow: 0 0 0 3px rgba(253,224,71,.4); }
+.ehBoxReceiver {
+  border-color: #60a5fa;
+  animation: chipPulse 1.4s ease-in-out infinite;
+}
+.ehBadge {
+  background: #f59e0b;
+  color: white;
+  font-weight: 800;
+  font-size: .85rem;
+  padding: 4px 9px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.ehName {
+  font-weight: 600;
+  font-size: .95rem;
+  color: #92400e;
+  flex: 1;
+}
+.ehName em { font-style: italic; color: #b45309; font-weight: 400; }
+.ehDesc { font-size: .75rem; color: #a16207; }
+
+@media (max-width: 400px) {
+  .ehDesc  { display: none; }
+  .posSelect { width: 54px; }
+  .chip { width: 40px; height: 40px; }
+  .chipPos { font-size: .65rem; }
+  .chipName { font-size: .55rem; }
+}

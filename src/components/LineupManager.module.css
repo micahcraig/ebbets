@@ -383,6 +383,8 @@
   transition: opacity .15s;
 }
 .chipDragWrap:active { cursor: grabbing; }
+/* Empty chips use long-press instead of drag */
+.chipEmptyWrap { cursor: pointer; }
 .chipDragging  { opacity: 0; }   /* hide original while DragOverlay renders */
 .chipSource    { opacity: .35; }
 
@@ -498,6 +500,106 @@
 }
 .ehName em { font-style: italic; color: #b45309; font-weight: 400; }
 .ehDesc { font-size: .75rem; color: #a16207; }
+
+/* ── Radial menu ─────────────────────────────────────────────────────────── */
+.radialOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+
+.radialBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.radialSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Crosshair dot at chip center */
+.radialOrigin {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+
+/* Position label above the chip center */
+.radialLabel {
+  position: fixed;
+  transform: translate(-50%, -340%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Player item circles */
+.radialItem {
+  position: fixed;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+  user-select: none;
+}
+
+.radialItemHovered {
+  transform: translate(-50%, -50%) scale(1.22);
+  border-color: white;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.35), 0 3px 12px rgba(0, 0, 0, 0.45);
+}
+
+.radialInitials {
+  font-size: .78rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  font-family: sans-serif;
+}
+
+.radialName {
+  font-size: .48rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1;
+  font-family: sans-serif;
+  max-width: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
 
 @media (max-width: 400px) {
   .ehDesc  { display: none; }

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   DndContext, DragOverlay,
   PointerSensor, TouchSensor,
@@ -265,6 +265,7 @@ export default function LineupManager({
                 ehSlots={ehSlots}
                 activeFieldPos={activePos}
                 isPlayerDragging={activeType === 'player'}
+                assignPlayerToPosition={assignPlayerToPosition}
               />
             </div>
           </div>
@@ -456,9 +457,23 @@ function SortableRow({ player, index, positions, updatePlayer, remove, isGhost }
 
 // ─── Field view ───────────────────────────────────────────────────────────────
 
-function FieldView({ players, posMap, outfield, ehSlots, activeFieldPos, isPlayerDragging }) {
+function FieldView({ players, posMap, outfield, ehSlots, activeFieldPos, isPlayerDragging, assignPlayerToPosition }) {
+  const [radialMenu, setRadialMenu] = useState(null) // { pos, chipRect }
+
   const outfieldSlots = outfield === '4' ? ['LF', 'CL', 'CR', 'RF'] : ['LF', 'CF', 'RF']
   const fieldSlots    = ['P', 'C', '1B', '2B', 'SS', '3B', ...outfieldSlots]
+
+  const unassignedPlayers = players.filter(p => !p.position)
+
+  const handleLongPress = (pos, chipRect) => {
+    if (unassignedPlayers.length === 0) return
+    setRadialMenu({ pos, chipRect })
+  }
+
+  const handleRadialAssign = (playerId) => {
+    assignPlayerToPosition(playerId, radialMenu.pos)
+    setRadialMenu(null)
+  }
 
   return (
     <div className={styles.fieldWrap}>
@@ -481,6 +496,7 @@ function FieldView({ players, posMap, outfield, ehSlots, activeFieldPos, isPlaye
                 pctY={(cy / 480) * 100}
                 isActiveSource={activeFieldPos === pos}
                 isPlayerDragging={isPlayerDragging}
+                onLongPress={handleLongPress}
               />
             )
           })}
@@ -503,6 +519,16 @@ function FieldView({ players, posMap, outfield, ehSlots, activeFieldPos, isPlaye
             )
           })}
         </div>
+      )}
+
+      {radialMenu && (
+        <RadialMenu
+          pos={radialMenu.pos}
+          chipRect={radialMenu.chipRect}
+          players={unassignedPlayers}
+          onAssign={handleRadialAssign}
+          onDismiss={() => setRadialMenu(null)}
+        />
       )}
     </div>
   )
@@ -580,7 +606,12 @@ function FieldBackground() {
 
 // ─── Position chip ────────────────────────────────────────────────────────────
 
-function PositionChip({ pos, name, color, pctX, pctY, isActiveSource, isPlayerDragging }) {
+function PositionChip({ pos, name, color, pctX, pctY, isActiveSource, isPlayerDragging, onLongPress }) {
+  const filled = Boolean(name)
+  const timerRef  = useRef(null)
+  const startRef  = useRef(null)
+  const anchorRef = useRef(null)
+
   const {
     attributes, listeners,
     setNodeRef: setDragRef,
@@ -588,6 +619,7 @@ function PositionChip({ pos, name, color, pctX, pctY, isActiveSource, isPlayerDr
   } = useDraggable({
     id: pos,
     data: { type: 'fieldPos', pos },
+    disabled: !filled,
   })
 
   const { setNodeRef: setDropRef, isOver } = useDroppable({
@@ -595,21 +627,46 @@ function PositionChip({ pos, name, color, pctX, pctY, isActiveSource, isPlayerDr
     data: { type: 'fieldPos', pos },
   })
 
+  const setAnchorRef = el => { setDropRef(el); anchorRef.current = el }
+
+  const cancelTimer = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
+  }
+
+  const emptyHandlers = {
+    onPointerDown(e) {
+      startRef.current = { x: e.clientX, y: e.clientY }
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null
+        navigator.vibrate?.(10)
+        onLongPress?.(pos, anchorRef.current?.getBoundingClientRect())
+      }, 500)
+    },
+    onPointerMove(e) {
+      if (!timerRef.current || !startRef.current) return
+      const dx = e.clientX - startRef.current.x
+      const dy = e.clientY - startRef.current.y
+      if (dx * dx + dy * dy > 100) cancelTimer()
+    },
+    onPointerUp:     cancelTimer,
+    onPointerCancel: cancelTimer,
+  }
+
   return (
     <div
-      ref={setDropRef}
+      ref={setAnchorRef}
       className={styles.chipAnchor}
       style={{ left: `${pctX}%`, top: `${pctY}%` }}
     >
       <div
         ref={setDragRef}
-        {...attributes}
-        {...listeners}
+        {...(filled ? { ...attributes, ...listeners } : emptyHandlers)}
         style={{ transform: CSS.Transform.toString(transform) }}
         className={[
           styles.chipDragWrap,
-          isDragging     ? styles.chipDragging : '',
-          isActiveSource ? styles.chipSource   : '',
+          !filled        ? styles.chipEmptyWrap : '',
+          isDragging     ? styles.chipDragging  : '',
+          isActiveSource ? styles.chipSource    : '',
         ].join(' ')}
       >
         <ChipVisual
@@ -619,6 +676,83 @@ function PositionChip({ pos, name, color, pctX, pctY, isActiveSource, isPlayerDr
           isOver={isOver && !isDragging}
           isPlayerDragging={isPlayerDragging}
         />
+      </div>
+    </div>
+  )
+}
+
+// ─── Radial menu ──────────────────────────────────────────────────────────────
+
+const RADIAL_R    = 88  // px from chip center to item center
+const RADIAL_HIT  = 34  // px hit radius around each item
+
+function RadialMenu({ pos, chipRect, players, onAssign, onDismiss }) {
+  const [hoveredId, setHoveredId] = useState(null)
+
+  const cx = chipRect.left + chipRect.width  / 2
+  const cy = chipRect.top  + chipRect.height / 2
+  const n  = players.length
+
+  const items = players.map((p, i) => {
+    const angle = (i / n) * 2 * Math.PI - Math.PI / 2
+    return { player: p, x: cx + RADIAL_R * Math.cos(angle), y: cy + RADIAL_R * Math.sin(angle) }
+  })
+
+  // Keep items accessible in event handlers without stale closure
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+
+  const getHit = (x, y) => {
+    for (const { player, x: ix, y: iy } of itemsRef.current) {
+      if ((x - ix) ** 2 + (y - iy) ** 2 < RADIAL_HIT ** 2) return player.id
+    }
+    return null
+  }
+
+  useEffect(() => {
+    const onMove = e => setHoveredId(getHit(e.clientX, e.clientY))
+    const onUp   = e => {
+      const hit = getHit(e.clientX, e.clientY)
+      if (hit) onAssign(hit)
+      else onDismiss()
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup',   onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup',   onUp)
+    }
+  }, [onAssign, onDismiss]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className={styles.radialOverlay}>
+      <div className={styles.radialBackdrop} />
+      <svg className={styles.radialSvg}>
+        {items.map(({ player, x, y }) => (
+          <line key={player.id}
+            x1={cx} y1={cy} x2={x} y2={y}
+            stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"
+          />
+        ))}
+      </svg>
+      <div className={styles.radialOrigin} style={{ left: cx, top: cy }} />
+      {items.map(({ player, x, y }) => (
+        <div
+          key={player.id}
+          className={[
+            styles.radialItem,
+            hoveredId === player.id ? styles.radialItemHovered : '',
+          ].join(' ')}
+          style={{ left: x, top: y, background: player.name ? player.color : '#94a3b8' }}
+        >
+          <span className={styles.radialInitials}>{getInitials(player.name)}</span>
+          {player.name && (
+            <span className={styles.radialName}>{player.name.split(/\s+/)[0]}</span>
+          )}
+        </div>
+      ))}
+      <div className={styles.radialLabel} style={{ left: cx, top: cy }}>
+        <span>{pos}</span>
       </div>
     </div>
   )

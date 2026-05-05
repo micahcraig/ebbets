@@ -1,5 +1,8 @@
 # Ebbets
 
+[![Publish to NPM](https://github.com/micahcraig/ebbets/actions/workflows/publish.yml/badge.svg?branch=main)](https://github.com/micahcraig/ebbets/actions/workflows/publish.yml)
+[![Storybook Deployment](https://github.com/micahcraig/ebbets/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages)](https://github.com/micahcraig/ebbets/actions/workflows/pages/pages-build-deployment)
+
 A softball lineup manager React component.
 
 **Desktop** — lineup list and field diagram side by side:
